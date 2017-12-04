@@ -1,1 +1,215 @@
-Hello World from André
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Instascan</title>
+    <script type="text/javascript" src="instascan.min.js"></script>
+    <script type="text/javascript" src="web3.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://ink.global.ssl.fastly.net/3.1.10/css/ink.css">
+    <script type="text/javascript" src="https://ink.global.ssl.fastly.net/3.1.10/js/ink-all.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <div class="ink-grid">
+      <div class="column-group horizontal-gutters vertical-gutters">
+        <div class="all-100">
+          <div class="private-key-qrcode">
+          </div>
+          <button id="private-key-button" class="ink-button">Toggle Private QR Code Scan</button>
+          <form class="ink-form">
+            <div class="control-group">
+              <label for="text-input">Ethereum Private Key</label> 
+              <div class="control">
+                  <input name="text" id="private-key-input" type="text" placeholder="Insert Private Key or Scan QR Code">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="all-100">
+          <div class="public-key-qrcode">
+          </div>
+          <!-- <button id="public-key-button" class="ink-button">Toggle Public QR Code Scan</button> -->
+          <form class="ink-form">
+            <div class="control-group">
+              <label for="text-input">Ethereum Public Key</label> 
+              <div class="control">
+                  <input disabled name="text" id="public-key-input" type="text" placeholder="Insert Public Key or Scan QR Code">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="all-100">
+          <button id="unlock-wallet" class="ink-button">Unlock wallet</button>
+        </div>
+        <div class="all-100 hide-all" id="target-div">
+          <div class="destination-public-key-qrcode">
+          </div>
+          <button id="to-public-key-button" class="ink-button">Toggle Destination Public Key QR Code Scan</button>
+          <form class="ink-form">
+              <div class="control-group">
+                  <label for="to-address">To Address</label>
+                  <div class="control">
+                      <input name="to-address" id="target-public-key-input" type="text" placeholder="Please enter destination address">
+                  </div>
+              </div>
+              <div class="control-group">
+                  <label for="transaction-value">Amount to send</label>
+                  <div class="control">
+                      <input name="transaction-value" id="transaction-value-input" type="text" placeholder="Please enter how much to send">
+                  </div>
+              </div>
+              <div class="control-group">
+                  <label for="transaction-gas-limit">Gas Limit</label>
+                  <div class="control">
+                      <input name="transaction-gas-limit" id="transaction-gas-limit-input" type="text" value="21000">
+                  </div>
+              </div>
+              <div class="control-group">
+                  <label for="transaction-gas-price">Gas Price</label>
+                  <div class="control">
+                      <input name="transaction-gas-price" id="transaction-gas-price-input" type="text" value="10">
+                  </div>
+              </div>
+          </form>
+          <div class="all-100">
+            <button id="send-transaction" class="ink-button">Send Transaction</button>
+          </div>
+          <div class="control-group">
+              <label id="result-text">Resultado</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      var web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/JL8yfBB4BFw7i7qXbseC"));
+
+      var privateQRcodeVideo = '';
+      document.getElementById('private-key-button').addEventListener('click', function(evt) {
+        if(privateQRcodeVideo) {
+          removeQRCode();
+          if(privateQRcodeVideo.parentNode)
+            privateQRcodeVideo.parentNode.removeChild(privateQRcodeVideo);
+          privateQRcodeVideo = '';
+        } else {
+          removeQRCode();
+          var video = document.createElement('video');
+          video.style = 'height:300px;width:200px';
+          video.id = 'private-key-qrcode-scanner';
+          document.querySelector('.private-key-qrcode').appendChild(video);
+          initializeQRScanner( { videoElm: document.getElementById('private-key-qrcode-scanner'), textSelector: 'private-key-input'});
+          privateQRcodeVideo = video;
+        }
+      });
+      var publicQRcodeVideo = '';
+      // document.getElementById('public-key-button').addEventListener('click', function(evt) {
+      //   if(publicQRcodeVideo) {
+      //     publicQRcodeVideo.parentNode.removeChild(publicQRcodeVideo);
+      //     publicQRcodeVideo = '';
+      //   } else {
+      //     var video = document.createElement('video');
+      //     video.style = 'height:600px;width:600px';
+      //     video.id = 'public-key-qrcode-scanner';
+      //     document.querySelector('.public-key-qrcode').appendChild(video);
+      //     initializeQRScanner( { videoElm: document.getElementById('public-key-qrcode-scanner'), textSelector: 'public-key-input'});
+      //     publicQRcodeVideo = video;
+      //   }
+      // });
+
+      var destinationQRcodeVideo = '';
+      document.getElementById('to-public-key-button').addEventListener('click', function(evt) {
+        if(destinationQRcodeVideo) {
+          removeQRCode();
+          if(destinationQRcodeVideo.parentNode)
+            destinationQRcodeVideo.parentNode.removeChild(destinationQRcodeVideo);
+          destinationQRcodeVideo = '';
+        } else {
+          removeQRCode();
+          var video = document.createElement('video');
+          video.style = 'height:300px;width:200px';
+          video.id = 'destination-public-key-qrcode-scanner';
+          document.querySelector('.destination-public-key-qrcode').appendChild(video);
+          initializeQRScanner( { videoElm: video, textSelector: 'target-public-key-input'});
+          destinationQRcodeVideo = video;
+        }
+      });
+
+      document.getElementById('unlock-wallet').addEventListener('click', function(evt) {
+
+        var targetDiv = document.getElementById('target-div');
+        targetDiv.classList.remove('hide-all');
+        
+        // private key example 'bd40c906d0baae70446f05830560ffae1ab825967cfb4dfe70a9dd4d5538f124'
+        var privateKey = document.getElementById('private-key-input').value;
+
+        if(privateKey) {
+          if(!/0x/.test(privateKey))
+            privateKey = '0x' + privateKey;
+        }
+        console.log(web3.eth.accounts.wallet.add(privateKey));
+
+        document.getElementById('public-key-input').value = web3.eth.accounts.privateKeyToAccount(privateKey).address;
+      });
+
+      document.getElementById('send-transaction').addEventListener('click', function(evt) {
+        sendTransaction();
+      });
+
+      function removeQRCode() {
+        if(scanner)
+          scanner.stop();
+        var videos = document.querySelectorAll('video');
+
+        for(var i=0; i<videos.length; i++) {
+          videos[i].parentNode.removeChild(videos[i]);
+        }
+      }
+
+      function sendTransaction() {
+        var result = web3.eth.sendTransaction({
+            from: document.getElementById('public-key-input').value,
+            to: document.getElementById('target-public-key-input').value,
+            value: Number(document.getElementById('transaction-value-input').value) * 1000000000000000000,
+            gas: document.getElementById('transaction-gas-limit-input').value,
+            gasPrice: Number(document.getElementById('transaction-gas-price-input').value) * 1000000000,
+            // nonce: 0
+        }, function(err, result) {
+
+          console.log(err);
+          console.log(result);
+
+          var resultLabelElm = document.getElementById('result-text');
+          resultLabelElm.innerHTML = 'Completed';
+          var hrefElm = document.createElement('a');
+          hrefElm.href = 'https://etherscan.io/tx/' + result;
+          hrefElm.innerHTML = hrefElm.href;
+          hrefElm.target = '_blank';
+          resultLabelElm.parentNode.appendChild(hrefElm);
+        });
+      }
+
+      var scanner = '';
+      function initializeQRScanner(opts) {
+        var { videoElm, textSelector } = opts;
+        scanner = new Instascan.Scanner({ video: videoElm, mirror: false });
+        scanner.addListener('scan', function (content) {
+          if(content) {
+            if(!/0x/.test(content))
+              content = '0x' + content;
+          }
+          document.getElementById(textSelector).value = content;
+        });
+        Instascan.Camera.getCameras().then(function (cameras) {
+          if (cameras.length > 0) {
+            if (cameras.length > 1)
+              scanner.start(cameras[1]);
+            else
+              scanner.start(cameras[0]);
+          } else {
+            console.error('No cameras found.');
+          }
+        }).catch(function (e) {
+          console.error(e);
+        });
+      }
+    </script>
+  </body>
+</html>
